@@ -1,5 +1,5 @@
-const scriptName = "test";
-const allow_room = ["ㅈㅇㅎ"]; // 허용 채팅방
+const scriptName = "SenseGame";
+const ALLOWROOM = ["ㅈㅇㅎ"]; // 허용 채팅방
 const REG = /[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]/gi; // 특수문자 제거
 const CHANNEL = {}; // 게임 채널
 const HEALTH = 30; // 기본 체력
@@ -15,10 +15,10 @@ const PREFIX = '.'; // 명령어 구분자
  */
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 {
-  if (allow_room.indexOf(room) >= 0)
+  if (ALLOWROOM.indexOf(room) >= 0)
   {
     if (msg.replace(REG, '').replace(/ /g, '').replace(/\\n/g, '') === "수호야눈치게임하자") init(room, sender, replier);
-    else if (CHANNEL[room] !== null && CHANNEL[room]["host"] === sender && CHANNEL[room]["state"] === 0 && msg.replace(/ /g, '').replace(/\\n/g, '').indexOf(',') === 1)
+    else if (CHANNEL[room] !== undefined && CHANNEL[room]["host"] === sender && CHANNEL[room]["state"] === 0 && msg.replace(/ /g, '').replace(/\\n/g, '').indexOf(',') === 1)
     {
       CHANNEL[room]["state"] = 2;
       classSelect(room, "수호", '0');
@@ -32,7 +32,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       replier.reply(room, descript);
       CHANNEL[room]["state"] = 1;
     }
-    else if(CHANNEL[room] !== null && CHANNEL[room]["host"] === sender && CHANNEL[room]["state"] === 1 && msg[0] === PREFIX && msg.replace(/ /g, '').replace(/\\n/g, '').length === 5)
+    else if(CHANNEL[room] !== undefined && CHANNEL[room]["host"] === sender && CHANNEL[room]["state"] === 1 && msg[0] === PREFIX && msg.replace(/ /g, '').replace(/\\n/g, '').length === 5)
     {
       CHANNEL[room]["state"] = 2;
       
@@ -42,17 +42,16 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       let user_type = (msg.indexOf("물리") >= 0) ? "물리" : "마법";
       let user_tactics = (msg.indexOf("공격") >= 0) ? "공격" : "방어";
       
-      // 타이머
       let descript = "주사위를 던질게요. 🎲👋";            
       replier.reply(room, descript);
-      
+
       let suho = rollDice(CHANNEL[room]["수호"]["class"]);
       let user = rollDice(CHANNEL[room][sender]["class"]);
+
+      java.lang.Thread.sleep(1500);
       
-      // 타이머
-      descript = "주사위결과\n수호 : " + suho + "\n" + sender + " : " + user;      
+      descript = "수호 : " + suho + "\n" + sender + " : " + user;      
       replier.reply(room, descript);
-            
       
       // 직업에 알맞게 공격력 증가효과 적용
       if (CHANNEL[room]["수호"]["class"] === "전사" && suho_type === "물리")
@@ -73,8 +72,10 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         user = parseInt(user * 1.5);
       }
       
+      java.lang.Thread.sleep(2500);
+
       // 결과
-      descript = "수호의 " + suho_type + suho_tactics + " - " + suho + "\n\n  vs\n\n" + sender + "의 " + user_type + user_tactics + " - " + user; 
+      descript = "수호의 " + suho_type + suho_tactics + " : " + suho + "\n\n\t\tvs\n\n" + sender + "의 " + user_type + user_tactics + " : " + user; 
       replier.reply(room, descript);
       
       // 아이템 사용
@@ -96,7 +97,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         if (suho_type === user_type)
         {
           // 공격에 대한 방어
-          if (suho_type === "공격")
+          if (suho_tactics === "공격")
           {
             CHANNEL[room][sender]["health"] -= ((suho - user) > 0 ? (suho - user) : 0);
           }
@@ -108,7 +109,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         else
         {
           // 일방적인 공격
-          if (suho_type === "공격")
+          if (suho_tactics === "공격")
           {
             CHANNEL[room][sender]["health"] -= suho;
           }
@@ -119,25 +120,34 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         }
       }
       
+      java.lang.Thread.sleep(1500);
+
       descript = "수호의 남은체력 : " + CHANNEL[room]["수호"]["health"] + "\n" + sender + "의 남은체력 : " + CHANNEL[room][sender]["health"];
       
       if (CHANNEL[room]["수호"]["health"] <= 0)
       {
         descript = sender + " 승!";
-        CHANNEL[room] = null;
-        return true;
+        CHANNEL[room]["state"] = 3;
       }
       else if (CHANNEL[room][sender]["health"] <= 0)
       {
         descript = "수호 승!";
-        CHANNEL[room] = null;
-        return false;
+        CHANNEL[room]["state"] = 3;
       }
       
       replier.reply(room, descript);
-      
+      if (CHANNEL[room]["state"] === 3)
+      {
+        CHANNEL[room] = undefined;
+        return;
+      }
+
+      java.lang.Thread.sleep(1500);
+      replier.reply(room, "공격과 전술을 입력해주세요.");
+
       // 심리전
-      
+      psycho();
+
       CHANNEL[room]["state"] = 1;
     }
     else if (CHANNEL[room] !== null && CHANNEL[room]["host"] === sender && msg[0] === PREFIX && msg.replace(/ /g, '').replace(/\\n/g, '').length === 5 && CHANNEL[room]["state"] === 2)
@@ -174,7 +184,7 @@ function init(room, sender, replier)
   2 - 계산 중, 행동불가
   */
   let descript = '';
-  if (CHANNEL[room] === null)
+  if (CHANNEL[room] === undefined)
   {
     CHANNEL[room] = {
       "turn" : false,
@@ -222,7 +232,7 @@ function init(room, sender, replier)
   else
   {
     descript += "게임이 이미 진행중입니다.";
-    CHANNEL[room] = null; // ***************************************************** 다만들고 지울 것
+    CHANNEL[room] = undefined; // ***************************************************** 다만들고 지울 것
   }
   replier.reply(room, descript);
 }
@@ -231,8 +241,7 @@ function classSelect(room, name, arg)
 {
   let classes = ["도박사", "사기꾼", "전사", "마법사", "상인"];
   let my = parseInt(arg);
-  let descript = "";
-  if (my === null || my <= 0 || my >= 6)
+  if (isNaN(my) || my <= 0 || my >= 6)
   {
     my = Math.floor(Math.random()*5)+1;
   }
@@ -253,8 +262,7 @@ function itemSelect(room, name, arg)
 {
   let items = ["공격뒤집개", "전술뒤집개", "바꿔치기"];
   let my = parseInt(arg);
-  let descript = "";
-  if (my === null || my <= 0 || my >= 4)
+  if (isNaN(my) || my <= 0 || my >= 4)
   {
     my = Math.floor(Math.random()*3)+1;
   }
