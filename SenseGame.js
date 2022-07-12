@@ -1,4 +1,4 @@
-const scriptName = "SenseGame";
+const scriptName = "test";
 const ALLOWROOM = ["ㅈㅇㅎ"]; // 허용 채팅방
 const REG = /[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]/gi; // 특수문자 제거
 const CHANNEL = {}; // 게임 채널
@@ -13,23 +13,36 @@ const PREFIX = '.'; // 명령어 구분자
  * (string) imageDB.getProfileB  ase64()
  * (string) packageName
  */
+ 
+/*
+ < 문제점 >
+ 
+ 1. 방어에 대한 패널티를 줄여야함.
+ ㄴ 한 턴 자체를 방어로 사용하게 되면 큰 낭비 => 공격이 더 이득 => 유저는 공격만 사용 => 게임의 재미 하락
+ 
+ 2. 급격한 역전, 반전의 기회가 굉장히 없음. => 게임의 긴장감 하락.
+*/
+ 
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 {
   if (ALLOWROOM.indexOf(room) >= 0)
   {
     if (msg.replace(REG, '').replace(/ /g, '').replace(/\\n/g, '') === "수호야눈치게임하자") init(room, sender, replier);
-    else if (CHANNEL[room] !== undefined && CHANNEL[room]["host"] === sender && CHANNEL[room]["state"] === 0 && msg.replace(/ /g, '').replace(/\\n/g, '').indexOf(',') === 1)
+    else if (CHANNEL[room] !== undefined && CHANNEL[room]["host"] === sender && CHANNEL[room]["state"] === 0 && msg.replace(REG, '').replace(/ /g, '').replace(/\\n/g, '').length === 1)
     {
       CHANNEL[room]["state"] = 2;
       classSelect(room, "수호", '0');
       classSelect(room, sender, msg.replace(/ /g, '').replace(/\\n/g, '')[0]);
-      itemSelect(room, "수호", '0');
-      itemSelect(room, sender, msg.replace(/ /g, '').replace(/\\n/g, '')[2]);
       
-      let descript = "수호\n직업 : " + CHANNEL[room]["수호"]["class"] + "\n아이템 : " + CHANNEL[room]["수호"]["item"];
-      descript += "\n\n" + sender +"\n직업 : " + CHANNEL[room][sender]["class"] + "\n아이템 : " + CHANNEL[room][sender]["item"];
-      descript += "\n.\n.\n저는 이미 선택했어요! 입력해주세요.";
+      let descript = "< 직업 결과 >\n수호 : " + CHANNEL[room]["수호"]["class"];
+      descript += "\n" + sender +" : " + CHANNEL[room][sender]["class"];
+      
       replier.reply(room, descript);
+      java.lang.Thread.sleep(2000);
+      
+      descript = "❗️ 공격형태와 전술형태를 입력해주세요.";
+      replier.reply(room, descript);
+      
       CHANNEL[room]["state"] = 1;
     }
     else if(CHANNEL[room] !== undefined && CHANNEL[room]["host"] === sender && CHANNEL[room]["state"] === 1 && msg[0] === PREFIX && msg.replace(/ /g, '').replace(/\\n/g, '').length === 5)
@@ -39,120 +52,125 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       let suho_type = ["물리", "마법"][Math.floor(Math.random()*2)];
       let suho_tactics = ["공격", "방어"][Math.floor(Math.random()*2)];
       
+      if (CHANNEL[room]["수호"]["psy"] !== '' && Math.floor(Math.random()*100)+1 >= 65)
+      {
+        suho_type = CHANNEL[room]["수호"]["psy"].slice(0,2);
+        suho_tactics = CHANNEL[room]["수호"]["psy"].slice(2);
+      }
+      
       let user_type = (msg.indexOf("물리") >= 0) ? "물리" : "마법";
       let user_tactics = (msg.indexOf("공격") >= 0) ? "공격" : "방어";
       
-      let descript = "주사위를 던질게요. 🎲👋";            
+      let descript = "주사위를 던질게요.\n\n\t👋\n\t\t  .\n\t\t\t   .\n\t\t\t\t  .\n\t\t\t\t.\n\t\t\t .\n\t\t\t.\n\t\t\t\t .\n\t\t\t\t 🎲";            
       replier.reply(room, descript);
 
-      let suho = rollDice(CHANNEL[room]["수호"]["class"]);
-      let user = rollDice(CHANNEL[room][sender]["class"]);
-
-      java.lang.Thread.sleep(1500);
+      let suho = rollDice(room, "수호");
+      let user = rollDice(room, sender);
       
-      descript = "수호 : " + suho + "\n" + sender + " : " + user;      
+      descript = "< 주사위 결과 >\n수호 : " + [0, "1️⃣","2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"][suho] + "\n" + sender + " : " + [0, "1️⃣","2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"][user];
+      
+      java.lang.Thread.sleep(2000);
       replier.reply(room, descript);
       
       // 직업에 알맞게 공격력 증가효과 적용
-      if (CHANNEL[room]["수호"]["class"] === "전사" && suho_type === "물리")
+      if (CHANNEL[room]["수호"]["class"] === "운동선수" && suho_type === "물리")
       {
         suho *= 2;
       }
-      else if (CHANNEL[room]["수호"]["class"] === "마법사" && suho_type === "마법")
+      else if (CHANNEL[room]["수호"]["class"] === "점성술사" && suho_type === "마법")
       {
         suho = parseInt(suho * 1.5);
       }
       
-      if (CHANNEL[room][sender]["class"] === "전사" && user_type === "물리")
+      if (CHANNEL[room][sender]["class"] === "운동선수" && user_type === "물리")
       {
         user *= 2;
       }
-      else if (CHANNEL[room][sender]["class"] === "마법사" && user_type === "마법")
+      else if (CHANNEL[room][sender]["class"] === "점성술사" && user_type === "마법")
       {
         user = parseInt(user * 1.5);
       }
-      
-      java.lang.Thread.sleep(2500);
 
-      // 결과
-      descript = "수호의 " + suho_type + suho_tactics + " : " + suho + "\n\n\t\tvs\n\n" + sender + "의 " + user_type + user_tactics + " : " + user; 
+      // 중간 결과
+      descript = "수호의 " + suho_type + suho_tactics + "력 : " + numToIcon(suho) + "\n\n\t\t\t  ⚔️\n\n" + sender + "의 " + user_type + user_tactics + "력 : " + numToIcon(user);
+      
+      java.lang.Thread.sleep(2000);
       replier.reply(room, descript);
       
-      // 아이템 사용
+      // 다른 공격, 다른 전술일 경우 막기 1/2 효과
+      let half_defense = false;
+      if (suho_type !== user_type && suho_tactics !== user_tactics)
+      {
+        half_defense = true;
+        if (suho_tactics === "공격")
+        {
+          user /= 2;
+        }
+        else
+        {
+          suho /= 2;
+        }
+      }
       
-      
-      // 합산
+      // 체력 계산
+      descript = "< 전투 결과 >\n";
       if (suho_tactics === user_tactics && suho_tactics === "공격")
       {
         // 서로 공격
-        CHANNEL[room]["수호"]["health"] -= user;
-        CHANNEL[room][sender]["health"] -= suho;
+        descript += damagedPlayer(room, "수호", sender, suho, half_defense);
+        descript += damagedPlayer(room, sender, "수호", user, half_defense);
       }
       else if (suho_tactics === user_tactics && suho_tactics === "방어")
       {
         // 다음 공격에 합산
+        descript += '다음 턴에 합산됩니다. (미구현)';
       }
       else if (suho_tactics !== user_tactics)
       {
-        if (suho_type === user_type)
+        // 공격에 대한 방어
+        if (suho_tactics === "공격")
         {
-          // 공격에 대한 방어
-          if (suho_tactics === "공격")
-          {
-            CHANNEL[room][sender]["health"] -= ((suho - user) > 0 ? (suho - user) : 0);
-          }
-          else
-          {
-            CHANNEL[room]["수호"]["health"] -= ((user - suho) > 0 ? (user - suho) : 0);
-          }
+          descript += damagedPlayer(room, "수호", sender, suho - user, half_defense);
         }
         else
         {
-          // 일방적인 공격
-          if (suho_tactics === "공격")
-          {
-            CHANNEL[room][sender]["health"] -= suho;
-          }
-          else
-          {
-            CHANNEL[room]["수호"]["health"] -= user;
-          }
+          descript += damagedPlayer(room, sender, "수호", user - suho, half_defense);
         }
       }
-      
-      java.lang.Thread.sleep(1500);
 
-      descript = "수호의 남은체력 : " + CHANNEL[room]["수호"]["health"] + "\n" + sender + "의 남은체력 : " + CHANNEL[room][sender]["health"];
+      descript += "\n< 남은 체력 >\n수호 : " + numToIcon(CHANNEL[room]["수호"]["health"]) + "\n" + sender + " : " + numToIcon(CHANNEL[room][sender]["health"]);
       
       if (CHANNEL[room]["수호"]["health"] <= 0)
       {
-        descript = sender + " 승!";
+        descript += "\n\n🏳 " + sender + " 승!";
         CHANNEL[room]["state"] = 3;
       }
       else if (CHANNEL[room][sender]["health"] <= 0)
       {
-        descript = "수호 승!";
+        descript += "\n\n🚩 수호 승!";
         CHANNEL[room]["state"] = 3;
       }
       
+      java.lang.Thread.sleep(2000);
       replier.reply(room, descript);
+      
       if (CHANNEL[room]["state"] === 3)
       {
         CHANNEL[room] = undefined;
         return;
       }
-
-      java.lang.Thread.sleep(1500);
-      replier.reply(room, "공격과 전술을 입력해주세요.");
-
+      
       // 심리전
-      psycho();
+      psycho(room, replier);
+
+      java.lang.Thread.sleep(1000);
+      replier.reply(room, "❗️ 공격형태와 전술형태를 입력해주세요.");
 
       CHANNEL[room]["state"] = 1;
     }
     else if (CHANNEL[room] !== null && CHANNEL[room]["host"] === sender && msg[0] === PREFIX && msg.replace(/ /g, '').replace(/\\n/g, '').length === 5 && CHANNEL[room]["state"] === 2)
     {
-      replier.reply(room, "지금은 할 수 없습니다.");
+      replier.reply(room, "🚫 지금은 할 수 없습니다.");
     }
   }
   /*
@@ -197,8 +215,9 @@ function init(room, sender, replier)
         "maxDice" : 6,
         "phys" : 1,
         "magic" : 1,
-        "item" : -1,
-        "itemCount" : 1
+        "acc" : 0,
+        "science" : false,
+        "psy" : ''
         };
     CHANNEL[room][sender] = {
         "health" : 30,
@@ -206,40 +225,36 @@ function init(room, sender, replier)
         "maxDice" : 6,
         "phys" : 1,
         "magic" : 1,
-        "item" : -1,
-        "itemCount" : 1
+        "acc" : 0,
+        "science" : false
         };
-    descript += "-규칙 설명-\n";
+    descript += "📋 규칙 설명\n";
     descript += "1. 공격 형태를 선택합니다. 공격 형태는 '물리'와 '마법'이 있습니다.\n";
     descript += "2. 전술 형태를 선택합니다. 전술 형태는 '공격'과 '방어'가 있습니다.\n";
     descript += "3. 공격 형태와 전술 형태를 선택하면 자동으로 6면체 주사위(힘 주사위)가 굴려집니다.\n";
     descript += "예시) " + PREFIX + "물리방어 => 자동으로 주사위 굴려져서 5가 나옴 => 5만큼의 물리방어력을 갖게됨.\n";
-    descript += "기본 체력은 " + HEALTH + "입니다.\n";
-    descript += "공격 형태에 알맞게 상호작용을 합니다. 예를들면 물리공격은 마법방어로 막을 수 없습니다.\n";
-    descript += "\n-직업-\n";
+    descript += "4. 기본 체력은 " + HEALTH + "입니다.\n";
+    descript += "5. 같은 공격형태, 다른 전술일때 방어효과는 100% 입니다.\n";
+    descript += "6. 다른 공격형태, 다른 전술일때 방어효과는 50% 입니다.\n";
+    descript += "7. 서로 방어를 선택하면, 다음에 그 합이 누적됩니다.\n";
+    descript += "\n🧭 직업\n";
     descript += "1. 도박사 - 힘 주사위의 눈금이 크게 나올 확률이 높다.\n";
     descript += "2. 사기꾼 - 힘 주사위의 눈금 상한선이 커진다.\n";
-    descript += "3. 전사 - 체력이 " + (HEALTH * 2) + "이 되고 물리관련 전술효과가 2배가 되지만, 힘 주사위 눈금이 크게 나올 확률이 작다.\n";
-    descript += "4. 마법사 - 마법관련 전술효과가 1.5배가 된다.\n";
-    descript += "5. 상인 - 선택한 아이템을 5회까지 사용 가능하다.\n";
-    descript += "\n-아이템-\n";
-    descript += "1. 공격뒤집개 - 나의 공격 유형을 전환한다. (물리 <-> 마법)\n";
-    descript += "2. 전술뒤집개 - 나의 전술 유형을 전환한다. (공격 <-> 방어)\n";
-    descript += "3. 바꿔치기 - 적 주사위를 정사면체로 바꾼다.\n";
-    descript += "\n직업과 아이템 번호를 입력해주세요\n";
-    descript += "예시) 1,3 => 도박사와 바꿔치기 선택\n";
+    descript += "3. 운동선수 - 체력이 " + (HEALTH * 2) + "이 되고 물리관련 전술효과가 2배 증가하지만, 힘 주사위 눈금이 크게 나올 확률이 작다.\n";
+    descript += "4. 점성술사 - 마법관련 전술효과가 1.5배 증가한다.\n";
+    descript += "5. 과학자 - 20% 확률로, 받은 피해만큼 체력을 회복한다. 효과는 연속으로 발동되지 않으며 발동 될 때마다 다음 턴 힘 주사위 눈금은 무조건 1이 나온다.\n";
+    descript += "\n❗️ 선택한 직업의 번호를 입력해주세요\n";
   }
   else
   {
-    descript += "게임이 이미 진행중입니다.";
-    CHANNEL[room] = undefined; // ***************************************************** 다만들고 지울 것
+    descript += "⚠️ 게임이 이미 진행중입니다.";
   }
   replier.reply(room, descript);
 }
 
 function classSelect(room, name, arg)
 {
-  let classes = ["도박사", "사기꾼", "전사", "마법사", "상인"];
+  let classes = ["도박사", "사기꾼", "운동선수", "점성술사", "과학자"];
   let my = parseInt(arg);
   if (isNaN(my) || my <= 0 || my >= 6)
   {
@@ -253,37 +268,25 @@ function classSelect(room, name, arg)
     CHANNEL[room][name]["phys"] = 2;
   }
   else if (my === 4) CHANNEL[room][name]["magic"] = 1.5;
-  else if (my === 5) CHANNEL[room][name]["itemCount"] = 5;
   
   CHANNEL[room][name]["class"] = classes[my-1];
 }
 
-function itemSelect(room, name, arg)
-{
-  let items = ["공격뒤집개", "전술뒤집개", "바꿔치기"];
-  let my = parseInt(arg);
-  if (isNaN(my) || my <= 0 || my >= 4)
-  {
-    my = Math.floor(Math.random()*3)+1;
-  }
-  
-  CHANNEL[room][name]["item"] = items[my-1];
-}
-
-function rollDice(job)
+function rollDice(room, name)
 {
   /*
   도박사는 확률 업
-  전사는 확률 다운
+  운동선수는 확률 다운
   */
   let result = -1;
   let cheat = Math.floor(Math.random()*100)+1;
+  let job = CHANNEL[room][name]["class"];
     
   if (job === "도박사")
   {
     /*
     30 20 20 10 10 10
-    */ 
+    */
     
     if (cheat >= 70) result = 6;
     else if (cheat >= 50) result = 5;
@@ -292,7 +295,7 @@ function rollDice(job)
     else if (cheat >= 10) result = 2;
     else result = 1;
   }
-  else if (job === "전사")
+  else if (job === "운동선수")
   {
     if (cheat >= 90) result = 6;
     else if (cheat >= 80) result = 5;
@@ -301,33 +304,92 @@ function rollDice(job)
     else if (cheat >= 30) result = 2;
     else result = 1;
   }
+  else if (job === "과학자" && CHANNEL[room][name]["science"])
+  {
+    CHANNEL[room][name]["science"] = false;
+    result = 1;
+  }
   else result = Math.floor(Math.random()*6)+1;
   
   return result;
 }
 
-
-// item functions
-
-function attackReverse()
+function damagedPlayer(room, attacker, victim, damage, defense)
 {
+  result = '';
   
+  if (defense)
+  {
+    result += "⚠️ 공격 형태가 달라, " + victim + "의 방어력이 절반만 유효합니다.\n";
+  }
+  
+  if (damage > 0)
+  {
+    // 과학자
+    if (CHANNEL[room][victim]["class"] === "과학자" && !CHANNEL[room][victim]["science"] && Math.floor(Math.random()*100)+1 >= 80)
+    {
+      CHANNEL[room][victim]["health"] += damage;
+      CHANNEL[room][victim]["science"] = true;
+      result += "🧬 " + attacker + "의 공격이 회복으로 치환 되었습니다. " + victim + "의 다음 턴 힘 주사위 눈금은 1️⃣ 입니다.\n";
+    }
+    else
+    {
+      CHANNEL[room][victim]["health"] -= damage;
+      result += "🗡 " + victim + "에게 " + numToIcon(damage) + "만큼 피해를 입혔습니다.\n";
+    }
+  }
+  else
+  {
+    result += "🛡 " + attacker + "의 공격을 모두 막았습니다.\n";
+  }
+  
+  return result;
 }
 
-function tacticsReverse()
+function psycho(room, replier)
 {
-  
+  if (CHANNEL[room]["수호"]["psy"] === '' && CHANNEL[room]["수호"]["health"] >= 10 && Math.floor(Math.random()*100)+1 >= 70)
+  {
+    CHANNEL[room]["수호"]["psy"] = ["물리", "마법"][Math.floor(Math.random()*2)] + ["공격", "방어"][Math.floor(Math.random()*2)];
+    
+    let msgs = [];
+    msgs[0] = "전 이번에 " + CHANNEL[room]["수호"]["psy"] + (CHANNEL[room]["수호"]["psy"].indexOf("공격") >= 0 ? "을" : "를") + " 내겠습니다.";
+    msgs[1] = "전 이번 턴에 " + CHANNEL[room]["수호"]["psy"] + (CHANNEL[room]["수호"]["psy"].indexOf("공격") >= 0 ? "을" : "를") + " 내겠습니다.";
+    msgs[2] = "이번 턴에는 " + CHANNEL[room]["수호"]["psy"] + (CHANNEL[room]["수호"]["psy"].indexOf("공격") >= 0 ? "을" : "를") + " 내보일까요?";
+    msgs[3] = "다음 턴에 " + CHANNEL[room]["수호"]["psy"] + (CHANNEL[room]["수호"]["psy"].indexOf("공격") >= 0 ? "을" : "를") + " 아무래도 치사하겠죠?";
+    msgs[4] = "다다음 턴에 " + CHANNEL[room]["수호"]["psy"] + (CHANNEL[room]["수호"]["psy"].indexOf("공격") >= 0 ? "을" : "를") + " 내야겠어요.";
+    msgs[5] = "흠... 이번 턴에 " + CHANNEL[room]["수호"]["psy"] + (CHANNEL[room]["수호"]["psy"].indexOf("공격") >= 0 ? "을" : "를") + " 안 내겠습니다.";
+    msgs[6] = "이번에는 " + CHANNEL[room]["수호"]["psy"] + (CHANNEL[room]["수호"]["psy"].indexOf("공격") >= 0 ? "을" : "를") + " 내드릴까요?";
+    msgs[7] = "운이 안좋네요... " + CHANNEL[room]["수호"]["psy"] + (CHANNEL[room]["수호"]["psy"].indexOf("공격") >= 0 ? "을" : "를") + " 낼께요.";
+    
+    java.lang.Thread.sleep(500);
+    replier.reply(room, "💡 " + msgs[Math.floor(Math.random()*msgs.length)]);
+  }
+  else
+  {
+    CHANNEL[room]["수호"]["psy"] = '';
+  }
+  return;
 }
 
-function swapDice()
+function numToIcon(n)
 {
+  let result = '';
+  let strN = n + '';
+  icon = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
+  for (let i = 0; i < strN.length; i++)
+  {
+    if (isNaN(parseInt(strN[i])))
+    {
+      result += strN[i];
+    }
+    else
+    {
+      result += icon[parseInt(strN[i])];
+    }
+  }
   
-}
-
-function psycho()
-{
-  
-  return Math.floor(Math.random()*10);
+  return result;
 }
 
 //아래 4개의 메소드는 액티비티 화면을 수정할때 사용됩니다.
