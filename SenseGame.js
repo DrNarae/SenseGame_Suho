@@ -2,7 +2,7 @@ const scriptName = "test";
 const ALLOWROOM = ["ㅈㅇㅎ"]; // 허용 채팅방
 const REG = /[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]/gi; // 특수문자 제거
 const CHANNEL = {}; // 게임 채널
-const HEALTH = 30; // 기본 체력
+const HEALTH = 100; // 기본 체력
 const PREFIX = '.'; // 명령어 구분자
 /**
  * (string) room
@@ -63,7 +63,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       let suho = rollDice(room, "수호");
       let user = rollDice(room, sender);
       
-      descript = "< 주사위 결과 >\n수호 : " + [0, "1️⃣","2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"][suho] + "\n" + sender + " : " + [0, "1️⃣","2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"][user];
+      descript = "< 주사위 결과 >\n수호 : " + numToIcon(suho) + "\n" + sender + " : " + numToIcon(user);
       
       java.lang.Thread.sleep(2000);
       replier.reply(room, descript);
@@ -122,7 +122,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       else if (suho_tactics === user_tactics && suho_tactics === "방어")
       {
         // 다음 공격에 합산
-        descript += '다음 힘 주사위 눈금에 합산됩니다.';
+        descript += '다음 힘 주사위 눈금에 합산됩니다.\n';
         CHANNEL[room]["수호"]["acc"] += suho - CHANNEL[room]["수호"]["acc"];
         CHANNEL[room][sender]["acc"] += user - CHANNEL[room][sender]["acc"];
       }
@@ -216,7 +216,7 @@ function init(room, sender, replier)
       "state" : 0
       };
     CHANNEL[room]["수호"] = {
-        "health" : 30,
+        "health" : 100,
         "class" : -1,
         "maxDice" : 6,
         "phys" : 1,
@@ -226,7 +226,7 @@ function init(room, sender, replier)
         "psy" : ''
         };
     CHANNEL[room][sender] = {
-        "health" : 30,
+        "health" : 100,
         "class" : -1,
         "maxDice" : 6,
         "phys" : 1,
@@ -248,7 +248,7 @@ function init(room, sender, replier)
     descript += "2. 사기꾼 - 자신의 힘 주사위를 12면체 주사위로 바꿔치기 한다.\n";
     descript += "3. 운동선수 - 체력이 " + (HEALTH + 10) + "이고 물리관련 전술효과가 2배 증가하지만, 힘 주사위가 4면체 주사위이다.\n";
     descript += "4. 점성술사 - 마법관련 전술효과가 1.5배 증가한다.\n";
-    descript += "5. 과학자 - 20% 확률로, 받은 피해만큼 체력을 회복한다. 효과는 연속으로 발동되지 않으며 발동 될 때마다 다음 턴 힘 주사위 눈금은 무조건 1이 나온다.\n";
+    descript += "5. 과학자 - 20% 확률로, 받은 피해만큼 체력을 회복한다. 효과는 연속으로 발동되지 않으며 발동 될 때마다 다음 턴 힘 주사위 눈금은 무조건 1️⃣이 나온다.\n";
     descript += "\n❗️ 선택한 직업의 번호를 입력해주세요\n";
   }
   else
@@ -405,6 +405,13 @@ function numToIcon(n)
       result += icon[parseInt(strN[i])];
     }
   }
+  
+  return result;
+}
+
+function suhoPatter()
+{
+  result = [];
   
   return result;
 }
